@@ -565,7 +565,24 @@ namespace aredis
       {
         if (buff[read_pos++] == '\n')
         {
-          current_state = rs_type_read;
+          auto& val = current_value();
+          if (val.len < 0)
+          {
+            val.len = 0;
+            val.type = rrt_nil;
+            return parser_value_end();
+          }
+          else
+          {
+            current_state = rs_type_read;
+            want_count = val.len;
+            res.size = want_count;
+            if (res.size > resp_result::default_array_size)
+            {
+              res.dvals.resize(res.size);
+            }
+            val.len = 0;
+          }
           return rc_ok;
         }
       }
@@ -579,6 +596,12 @@ namespace aredis
         char c = buff[read_pos++];
         switch (c)
         {
+        case '-':
+        {
+          auto& val = current_value();
+          val.len = -1;
+          break;
+        }
         case '0':
         case '1':
         case '2':
@@ -598,14 +621,6 @@ namespace aredis
         case '\r':
         {
           current_state = rs_array_cr;
-          auto& val = current_value();
-          want_count = val.len;
-          res.size = want_count;
-          if (res.size > resp_result::default_array_size)
-          {
-            res.dvals.resize(res.size);
-          }
-          val.len = 0;
           return parser_array_end();
         }
         default:
