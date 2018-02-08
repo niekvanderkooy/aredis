@@ -568,6 +568,7 @@ namespace aredis
           auto& val = current_value();
           if (val.len < 0)
           {
+            res.size = 0;
             val.len = 0;
             val.type = rrt_nil;
             return parser_value_end();
